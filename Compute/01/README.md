@@ -12,11 +12,19 @@ You should see the message: `Server is running on port 8080`. Go to `http://loca
 * Create App Service Plan, choose the Free SKU
 * Create App Service Web app, choose the free app service plan created
 
+### Deploy as ZIP package
+
 Navigate to the root directory of your app project i.e. `Compute/01`
 
     zip -r project.zip .
     az webapp deploy --resource-group <group-name> --name <app-name> --src-path <zip-package-path>
 
 Docs: [Deploy zip or war](https://learn.microsoft.com/en-us/azure/app-service/deploy-zip)
+
+### Deploy using GitHub Actions
+
+TODO
+
+Docs: [Use GitHub Actions](https://learn.microsoft.com/en-us/azure/app-service/deploy-github-actions)
 
 Stop the web app when you no longer need it.
