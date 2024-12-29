@@ -35,7 +35,7 @@ Two premium P6 managed disks are included in the 12-months free tier hence the 6
       --public-ip-address "" \
       --ssh-key-values ~/.ssh/azure_id_rsa.pub
 
-  az vm create \
+    az vm create \
       --name VM2 \
       --resource-group $RG_NAME \
       --location $LOCATION \
