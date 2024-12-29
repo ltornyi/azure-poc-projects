@@ -21,3 +21,11 @@ Skills
 
 Cost
 * 750 hours VpnGw1 Gateway Type is free for 12 months.
+
+## 03: Implement Azure Bastion
+
+Skills
+* Configure Azure Bastion to provide secure RDP/SSH access to virtual machines without exposing public IPs.
+
+Cost
+* Developer SKU Bastion is always free and doesn't require a public IP.
