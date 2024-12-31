@@ -1,7 +1,5 @@
 import { app, HttpRequest, HttpResponseInit, InvocationContext } from "@azure/functions";
 
-import { RESPONSE_HEADERS } from "../common/constants";
-
 export async function ServerTime(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
     context.log(`ServerTime function processed request for url "${request.url}"`);
 
@@ -10,7 +8,7 @@ export async function ServerTime(request: HttpRequest, context: InvocationContex
     const formattedDate = new Intl.DateTimeFormat('en-GB', options).format(now);
     const response = {formattedDate: formattedDate, now: now};
 
-    return { body: JSON.stringify(response), headers: RESPONSE_HEADERS};
+    return { jsonBody: response};
 };
 
 app.http('ServerTime', {
