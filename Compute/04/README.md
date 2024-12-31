@@ -62,6 +62,17 @@ This will be used to connect when running the function app locally. The permissi
 
 See `AllToDos.ts` for an input binding example.
 
+### Use Entra authentication locally
+
+You can also leverage an Entra user when running the function app locally.
+
+* Create your externally identified user in the database (see details below under the managed identity section)
+* Replace the local `SqlConnectionString` with the following:
+
+    Server=tcp:your_Azure_SQL_server.database.windows.net,1433;Initial Catalog=your_Azure_SQL_database;Persist Security Info=False;User ID={your_entra_username};MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Authentication=\"Active Directory Default\";
+
+More details are [here](https://learn.microsoft.com/en-us/sql/connect/ado-net/sql/azure-active-directory-authentication?view=sql-server-ver16#using-default-authentication)
+
 ## Deploy to Azure
 
 ### Create resource group, storage account and function app
@@ -101,3 +112,57 @@ Note the URLs printed by the deployment; for authLevel=function endpoints you wi
       --function-name ServerTime \
       --name $APP_NAME \
       --resource-group $RG_NAME
+
+## Connect the function app to Azure SQL with managed identity
+
+This is based on [MS documentation](https://learn.microsoft.com/en-gb/azure/azure-functions/functions-identity-access-azure-sql-with-managed-identity)
+
+### Check if your database server has an Entra admin
+
+    SQL_SERVER_RG="resource group of your SQL server"
+    SQL_SERVER_NAME="name of your SQL server"
+    az sql server ad-admin list \
+      --resource-group $SQL_SERVER_RG \
+      --server-name $SQL_SERVER_NAME
+
+If there's no Micrososft Entra administrator, follow the steps [here](https://learn.microsoft.com/en-us/azure/azure-sql/database/authentication-aad-configure?view=azuresql&tabs=azure-portal#provision-azure-ad-admin-sql-database) to add one.
+
+### Add managed identity to your function app
+
+Either enable system-assigned managed identity or add a user-assigned managed identity. You can do this from the portal (settings -> identity) or you can use the CLI; see instructions [here](https://learn.microsoft.com/en-gb/azure/app-service/overview-managed-identity?tabs=cli%2Cdotnet&toc=%2Fazure%2Fazure-functions%2Ftoc.json#add-a-system-assigned-identity). The name of the system-assigned identity is always the name of the function app.
+
+### Create database user for the managed identity
+
+    CREATE USER [<identity-name>] FROM EXTERNAL PROVIDER;
+    ALTER ROLE db_datareader ADD MEMBER [<identity-name>];
+    ALTER ROLE db_datawriter ADD MEMBER [<identity-name>];
+
+You can fine-tune the database permissions by creating a custom role etc.
+
+### Set the connection string for the deployed function app
+
+If you used the system-assigned managed identity, the connection string should look like:
+
+    Server=tcp:your_Azure_SQL_server.database.windows.net,1433;Initial Catalog=your_Azure_SQL_database;Persist Security Info=False;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Authentication="Active Directory Managed Identity";
+
+If you used a user-assigned managed identity, the connection string should look like:
+
+    Server=tcp:your_Azure_SQL_server.database.windows.net,1433;Initial Catalog=your_Azure_SQL_database;Persist Security Info=False;User ID=ClientIdOfManagedIdentity;MultipleActiveResultSets=False;Encrypt=True;TrustServerCertificate=False;Authentication="Active Directory Managed Identity";
+
+### Check active DB connections
+
+    SELECT DB_NAME(dbid) AS DBName,
+        COUNT(dbid) AS NumberOfConnections,
+        loginame
+    FROM sys.sysprocesses
+    GROUP BY dbid, loginame
+    ORDER BY DB_NAME(dbid)
+
+    select pr.name,
+        pr.type_desc,
+        sess.session_id,
+        sess.login_time,
+        sess.program_name
+    from sys.dm_exec_sessions as sess
+    join sys.database_principals as pr on pr.sid = sess.original_security_id
+    where sess.is_user_process=1
