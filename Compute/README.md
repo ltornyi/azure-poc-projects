@@ -32,3 +32,15 @@ Skills
 Cost
 * Container apps: 180,000 vCPU seconds, 360,000 GiB seconds, and 2 million requests is always free.
 * Container registry: 1 Standard tier registry with 100 GB storage and 10 webhooks is free for 12 months.
+
+## 04: Function app as CRUD APIs
+
+Skills
+* Designing and implementing scalable, event-driven APIs using Azure Functions.
+* Integrating serverless functions with other Azure services such Azure SQL database and Azure API Management.
+* Implement robust security measures such as Microsoft Entra ID authentication and managed identities.
+
+Cost
+* Functions: 1 million requests per month are always free in the consumption plan
+* Azure SQL: 750 vCore hours per month with 32 Gbyte storage is free for 12 months
+* Azure SQL: 100,000 vCore seconds serverless per month with 32 Gbyte storage is always free
