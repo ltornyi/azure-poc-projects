@@ -8,19 +8,19 @@ const sqlInput = input.sql({
 });
 
 export async function AllTodos(request: HttpRequest, context: InvocationContext): Promise<HttpResponseInit> {
-    context.log(`AllTodos function processed request for url "${request.url}"`);
+  context.log(`AllTodos function processed request for url "${request.url}"`);
 
-    const toDoItems = context.extraInputs.get(sqlInput) as ToDo[];
-    context.log(`todoitems count: ${toDoItems.length}`);
-    return {
-      jsonBody: toDoItems,
-    };
+  const toDoItems = context.extraInputs.get(sqlInput) as ToDo[];
+  context.log(`todoitems count: ${toDoItems.length}`);
+  return {
+    jsonBody: toDoItems,
+  };
 };
 
 app.http('AllTodos', {
-    methods: ['GET'],
-    route: 'todo',
-    extraInputs: [sqlInput],
-    authLevel: 'function',
-    handler: AllTodos
+  methods: ['GET'],
+  route: 'todo',
+  extraInputs: [sqlInput],
+  authLevel: 'function',
+  handler: AllTodos
 });
