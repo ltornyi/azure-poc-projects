@@ -166,3 +166,62 @@ If you used a user-assigned managed identity, the connection string should look 
     from sys.dm_exec_sessions as sess
     join sys.database_principals as pr on pr.sid = sess.original_security_id
     where sess.is_user_process=1
+
+## Secure the APIs using Microsoft Entra
+
+This option is also called "EasyAuth" for App Service and Function apps. Follow the [quickstart](https://learn.microsoft.com/en-us/azure/app-service/scenario-secure-app-authentication-app-service?tabs=workforce-configuration). Look at the [page here](https://learn.microsoft.com/en-us/azure/app-service/configure-authentication-provider-aad?tabs=workforce-configuration) for more details.
+
+### Create an app registration to represent the function app
+
+Follow the [quickstart](https://learn.microsoft.com/en-us/entra/identity-platform/quickstart-register-app?tabs=certificate) in the Entra admin portal with some specific changes below:
+
+* Name: give the app registration the same name as your function app (this is for convenience only)
+* Redirect URI: choose `Web` and set the URI to https://your_funcapp.azurewebsites.net/.auth/login/aad/callback
+* Create an application ID URI: Expose an API -> Add a scope -> save and continue. Your Application ID URI will be `api://<application-client-id>`.
+* Add the scope `user_impersonation`; allow admins and users to consent. Add a display name and description.
+* Create a client secret and copy it someplace safe.
+* Edit the manifest and force v2 tokens. In the new manifest the property is called `requestedAccessTokenVersion`, in the old manifest it's called `accessTokenAcceptedVersion`.
+
+### Set up Entra ID authentication for the function app
+
+In the Azur portal, select your app registration, choose settings -> authentication and add Microsoft as an identity provider.
+
+* Choose current tenant
+* Select `Provide the details of an existing app registration` and add the application id, the client secret and the issuer URL. The issuer URL should be in the form of `https://sts.windows.net/your_tenant_id/v2.0`.
+* Review and leave the Additional checks at their default value - we will come back here once we have the client app registration.
+* Since this is an API, choose `HTTP 401 Unauthorized:` under Unauthenticated requests.
+* Choose `Add`.
+
+Try
+
+    https://your_func_app.azurewebsites.net/api/ServerTime?code=your_valid_function_key
+
+At this point, the API returns 401 Unauthorized even if called with the proper function key.
+
+### Set up client application registration for testing in Postman
+
+Create another application registration in Entra; this will represent Postman as a client application.
+
+* Name: something descriptive, for example `Postman client`.
+* Redirect URI: choose `Web` and set the URI to http://localhost
+* API permissions: add the `user_impersonation` created earlier for the function app registration.
+* Edit the manifest and force v2 tokens. In the new manifest the property is called `requestedAccessTokenVersion`, in the old manifest it's called `accessTokenAcceptedVersion`.
+
+Take note of the application ID. Go back to the function app in the Azure portal, edit the identity provider added. Under Additional checks, change the setting called "Client application requirement" to "Allow requests from specific client applications". Add the application ID of the newly created client to the list.
+
+### Set up authentication on your Postman collection
+
+* Auth type: OAuth 2.0
+* Grant type: implicit
+* Callback URL: http://localhost
+* Auth URL: https://login.microsoftonline.com/your_tenant/oauth2/v2.0/authorize
+* Client ID: the ID of the application registration representing the Postman client
+* Scope: api://application_id_of_function_app/user_impersonation
+
+Try calling the APIs from the Postman collection, it should work now.
+
+### Troubleshooting
+
+If you receive a 401 response with a payload complaining about the adudience not matching, then make sure you receive v2 tokens. Decode the token on `https://jwt.ms` and also check the manifest of the application registration.
+
+If you receive a 403 response with an empty payload, then doublecheck you have added the application id of the client to the list of allowed applications in the identity provider settings of the function app.
